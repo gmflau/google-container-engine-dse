@@ -6,5 +6,5 @@ resources:
   type: datastax.jinja
   properties:
     clusterType: cluster-clustername-type
-    numNodes: 4
-    dc: dc-1
+    numNodes: 2
+    dc: dc-1,dc-2

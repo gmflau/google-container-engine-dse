@@ -8,7 +8,7 @@
 {% set OPSCENTER_NAME = NAME_PREFIX + '-opscenter' %}
 {% set NODE_NAME = NAME_PREFIX + '-node' %}
 {% set SEED_NAME = NAME_PREFIX + '-seed' %}
-{% set DC_NAME = properties['dc'] %}
+{% set DC_LIST = properties['dc'].split(',') %}
 
 resources:
 #
@@ -125,32 +125,33 @@ resources:
         protocol: TCP
         name: port61621
       selector:
-        name: {{ NODE_NAME }}-0
+        name: {{ NODE_NAME }}-{{ DC_LIST[0] }}-0
 
 #
 # DataStax Enterprise nodes
 #
-{% for i in range(properties['numNodes']) %}
-- name: {{ NODE_NAME }}-{{ i }}
+{% for DC in DC_LIST %}
+  {% for i in range(properties['numNodes']) %}
+- name: {{ NODE_NAME }}-{{ DC }}-{{ i }}
   type: {{ CLUSTER_TYPE }}:{{ RC_COLLECTION }}
   properties:
     apiVersion: v1
     kind: ReplicationController
     namespace: default
     metadata:
-      name: {{ NODE_NAME }}-{{ i }}
+      name: {{ NODE_NAME }}-{{ DC }}-{{ i }}
     spec:
       template:
         metadata:
           labels:
-            name: {{ NODE_NAME }}-{{ i }}
+            name: {{ NODE_NAME }}-{{ DC }}-{{ i }}
         spec:
           containers:
           - name: datastax
             image: ubuntu:14.04
             env:
             - name: DC_NAME
-              value: {{ DC_NAME }}
+              value: {{ DC }}
             - name: SEED_NODE_SERVICE
               value: {{ SEED_NAME }}
             - name: OPSCENTER_NAME
@@ -173,5 +174,6 @@ resources:
           volumes:
             - name: dse-data
               emptyDir: {}
+  {% endfor %}
 {% endfor %}
  
