@@ -8,6 +8,7 @@
 {% set OPSCENTER_NAME = NAME_PREFIX + '-opscenter' %}
 {% set NODE_NAME = NAME_PREFIX + '-node' %}
 {% set SEED_NAME = NAME_PREFIX + '-seed' %}
+{% set DC_NAME = properties['dc'] %}
 
 resources:
 #
@@ -22,7 +23,8 @@ resources:
     metadata:
       name: {{ OPSCENTER_NAME }}
     spec:
-      type: LoadBalancer
+      # type: LoadBalancer
+      clusterIP: None
       ports:
       - port: 8888
         targetPort: 8888
@@ -32,6 +34,24 @@ resources:
         targetPort: 61620
         protocol: TCP
         name: port61620
+      selector:
+        name: {{ OPSCENTER_NAME }}
+
+- name: {{ OPSCENTER_NAME }}-external-lb
+  type: {{ CLUSTER_TYPE }}:{{ SERVICE_COLLECTION }}
+  properties:
+    apiVersion: v1
+    kind: Service
+    namespace: default
+    metadata:
+      name: {{ OPSCENTER_NAME }}-external-lb
+    spec:
+      type: LoadBalancer
+      ports:
+      - port: 8888
+        targetPort: 8888
+        protocol: TCP
+        name: port8888
       selector:
         name: {{ OPSCENTER_NAME }}
 
@@ -62,7 +82,7 @@ resources:
             - /bin/bash
             - -e
             - -c
-            - apt-get update; apt-get -y install wget; wget https://raw.githubusercontent.com/DSPN/google-container-engine-dse/master/scripts/opscenter.sh; chmod +x opscenter.sh; ./opscenter.sh
+            - apt-get update; apt-get -y install wget; wget https://raw.githubusercontent.com/gmflau/google-container-engine-dse/master/scripts/opscenter.sh; chmod +x opscenter.sh; ./opscenter.sh
 
 #
 # Seed service
@@ -77,7 +97,8 @@ resources:
       name: {{ SEED_NAME }}
     spec:
       # Uncomment this for external IP for testing.
-      # type: LoadBalancer
+      #type: LoadBalancer
+      clusterIP: None
       ports:
       - port: 7000
         targetPort: 7000
@@ -128,6 +149,8 @@ resources:
           - name: datastax
             image: ubuntu:14.04
             env:
+            - name: DC_NAME
+              value: {{ DC_NAME }}
             - name: SEED_NODE_SERVICE
               value: {{ SEED_NAME }}
             - name: OPSCENTER_NAME
@@ -139,9 +162,16 @@ resources:
             - containerPort: 9042
             - containerPort: 9160
             - containerPort: 61621
+            volumeMounts:
+              - mountPath: /mnt
+                name: dse-data
             command:
             - /bin/bash
             - -e
             - -c
-            - apt-get update; apt-get -y install wget; wget https://raw.githubusercontent.com/DSPN/google-container-engine-dse/master/scripts/dse.sh; chmod +x dse.sh; ./dse.sh
+            - apt-get update; apt-get -y install wget; wget https://raw.githubusercontent.com/gmflau/google-container-engine-dse/master/scripts/dse.sh; chmod +x dse.sh; ./dse.sh
+          volumes:
+            - name: dse-data
+              emptyDir: {}
 {% endfor %}
+ 

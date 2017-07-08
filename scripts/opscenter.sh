@@ -18,7 +18,10 @@ echo "Configuring OpsCenter with the settings:"
 echo cloud_type $cloud_type
 echo seed_nodes_dns_names $seed_nodes_dns_names
 
+# Add delay for seed node to be available
+sleep 30s
+
 ./opscenter.sh $cloud_type $seed_nodes_dns_names
 
-# 100 hours
-sleep 360000
+# Run indefinitely
+tail -f /dev/null

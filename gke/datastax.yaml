@@ -7,3 +7,4 @@ resources:
   properties:
     clusterType: cluster-clustername-type
     numNodes: 4
+    dc: dc-1
